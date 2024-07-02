@@ -1,15 +1,22 @@
-import React from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext'; // Korrigierter Importpfad
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const { login } = useAuth()
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    login();
+    navigate('/');
+  };
 
   return (
     <div>
       <h1>Login Page</h1>
-      <button onClick={login}>Login</button>
+      <button onClick={handleLogin}>Login</button>
     </div>
   );
 };
 
-export default Login
+export default Login;

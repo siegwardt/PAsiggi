@@ -1,24 +1,39 @@
 import React from 'react';
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+import classes from './style/layout.module.css';
 
 const Layout = () => {
+  const { isAuthenticated, logout } = useAuth();
+
   return (
-  <>
-    <header>
-      <nav>
-        <ul>
-          <li>
-            <Link to="/">Home</Link>
-          </li>
-          <li>
-            <Link to="/produkts">Produkte</Link>
-          </li>
-        </ul>
-      </nav>
-    </header>
-    <Outlet />
-  </>
-  )
-}
+    <div className={classes.container}>
+      <header className={classes.header}>
+        <nav className={classes.nav}>
+          <ul>
+            <li>
+              <Link to="/">Home</Link>
+            </li>
+            {isAuthenticated && (
+              <li>
+                <Link to="/konto">Konto</Link>
+              </li>
+            )}
+            {isAuthenticated ? (
+              <li>
+                <button onClick={logout}>Logout</button>
+              </li>
+            ) : (
+              <li>
+                <Link to="/login">Login</Link>
+              </li>
+            )}
+          </ul>
+        </nav>
+      </header>
+      <Outlet />
+    </div>
+  );
+};
 
 export default Layout;

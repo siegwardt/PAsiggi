@@ -1,15 +1,26 @@
-import React from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext'; // Korrigierter Importpfad
+import { useNavigate } from 'react-router-dom';
 
 const Konto = () => {
-  const { logout } = useAuth()
+  const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    // Navigieren Sie nicht nach dem Logout, bleiben Sie auf der Konto-Seite
+  };
 
   return (
     <div>
       <h1>Konto Page</h1>
-      <button onClick={logout}>Logout</button>
+      {isAuthenticated ? (
+        <button onClick={handleLogout}>Logout</button>
+      ) : (
+        <button onClick={() => navigate('/login')}>Login</button>
+      )}
     </div>
   );
 };
 
-export default Konto
+export default Konto;
