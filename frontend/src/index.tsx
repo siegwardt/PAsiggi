@@ -8,6 +8,7 @@ import './style/index.module.css';
 import Home from './pages/Home';
 import Konto from './pages/Konto';
 import Login from './pages/Login';
+import ProtectedKonto from './components/ProtectedKonto';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -18,12 +19,15 @@ root.render(
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="konto" element={<Konto />} />
           <Route path="login" element={<Login />} />
+          <Route
+            path="konto"
+            element={<ProtectedKonto element={Konto} />}
+          />
         </Route>
       </Routes>
     </AuthProvider>
   </BrowserRouter>
 );
 
-reportWebVitals();
+reportWebVitals()

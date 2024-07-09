@@ -19,11 +19,7 @@ const Layout = () => {
                 <Link to="/konto">Konto</Link>
               </li>
             )}
-            {isAuthenticated ? (
-              <li>
-                <button onClick={logout}>Logout</button>
-              </li>
-            ) : (
+            {!isAuthenticated && (
               <li>
                 <Link to="/login">Login</Link>
               </li>
