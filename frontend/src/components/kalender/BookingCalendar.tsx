@@ -19,21 +19,28 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ isAdmin, userId }) =>
 
   const fetchEvents = useCallback(async () => {
     try {
-      const fetchedReservierungen = isAdmin 
-        ? await getReservierungen()
-        : await getReservierungen(userId);
-
+      const fetchedReservierungen = await getReservierungen();
       const mappedEvents = fetchedReservierungen.map((r) => ({
         id: r.id,
-        title: isAdmin || r.userId === userId ? r.title : '',
+        title: isAdmin
+          ? r.title
+          : r.userId === userId
+          ? r.title
+          : r.status === 'gebucht'
+          ? 'Gebucht'
+          : r.status === 'reserviert'
+          ? 'Reserviert'
+          : '',
         date: r.date,
-        color: r.status === 'reserviert'
-          ? '#ffeb3b'
-          : isAdmin
-          ? '#9c27b0'
+        color: isAdmin
+          ? r.status === 'gebucht'
+            ? '#9c27b0'
+            : '#ffeb3b'
           : r.userId === userId
           ? '#4caf50'
-          : '#e53935',
+          : r.status === 'gebucht'
+          ? '#e53935'
+          : '#ffeb3b',
         extendedProps: {
           category: r.status,
           info: r.info,
@@ -47,7 +54,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ isAdmin, userId }) =>
     } catch (error) {
       console.error('Fehler beim Laden der Reservierungen:', error);
     }
-  }, [isAdmin, userId]);
+  }, [userId, isAdmin]);
 
   useEffect(() => {
     fetchEvents();
