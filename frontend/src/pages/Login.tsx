@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Hier könntest du eine Backend-Anfrage zum Einloggen/Registrieren machen.
+  
     login();
     navigate('/konto');
   };

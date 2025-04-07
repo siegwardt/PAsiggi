@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext'; // Korrigierter Importpfad
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const Konto = () => {
@@ -8,7 +8,6 @@ const Konto = () => {
 
   const handleLogout = () => {
     logout();
-    // Navigieren Sie nicht nach dem Logout, bleiben Sie auf der Konto-Seite
   };
 
   return (

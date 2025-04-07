@@ -13,14 +13,16 @@ interface BookingCalendarProps {
 }
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({ isAdmin, userId }) => {
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<EventApi | null>(null);
-  const [events, setEvents] = useState<any[]>([]);
+  const [state, setState] = useState({
+    selectedDate: null as string | null,
+    selectedEvent: null as EventApi | null,
+    events: [] as any[],
+  });
 
   const fetchEvents = useCallback(async () => {
     try {
       const fetchedReservierungen = await getReservierungen();
-      const mappedEvents = fetchedReservierungen.map((r) => ({
+      const mappedEvents = fetchedReservierungen.map(r => ({
         id: r.id,
         title: isAdmin
           ? r.title
@@ -50,49 +52,51 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ isAdmin, userId }) =>
         },
       }));
 
-      setEvents(mappedEvents);
+      setState(prevState => ({ ...prevState, events: mappedEvents }));
     } catch (error) {
       console.error('Fehler beim Laden der Reservierungen:', error);
     }
-  }, [userId, isAdmin]);
+  }, [isAdmin, userId]);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
   const handleDateClick = (info: DateClickArg) => {
-    const clickedDate = new Date(info.dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (clickedDate >= today) {
-      setSelectedDate(info.dateStr);
+    if (new Date(info.dateStr) >= today) {
+      setState(prevState => ({ ...prevState, selectedDate: info.dateStr }));
     }
   };
 
   const handleEventClick = (info: { event: EventApi }) => {
     if (isAdmin) {
-      setSelectedEvent(info.event);
+      setState(prevState => ({ ...prevState, selectedEvent: info.event }));
     }
   };
 
-  const handleEventClose = () => {
-    setSelectedEvent(null);
+  const resetState = (field: keyof typeof state) => {
+    setState(prevState => ({ ...prevState, [field]: null }));
   };
 
   const handleBooking = async () => {
+    const { selectedDate } = state;
     if (!selectedDate) return;
 
     try {
       await erstelleReservierung(selectedDate, userId);
       alert('Reservierung wurde erfolgreich eingetragen.');
-      setSelectedDate(null);
+      resetState('selectedDate');
       fetchEvents();
     } catch (error) {
       console.error('Fehler beim Erstellen der Reservierung:', error);
       alert('Es gab einen Fehler bei der Reservierung.');
     }
   };
+
+  const { selectedDate, selectedEvent, events } = state;
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: 16 }}>
@@ -108,14 +112,14 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ isAdmin, userId }) =>
       />
       <BookingDialog
         selectedDate={selectedDate}
-        onClose={() => setSelectedDate(null)}
+        onClose={() => resetState('selectedDate')}
         onConfirm={handleBooking}
         isAdmin={isAdmin}
       />
       {isAdmin && selectedEvent && (
         <EventCard
           event={selectedEvent}
-          onClose={handleEventClose}
+          onClose={() => resetState('selectedEvent')}
           isAdmin={isAdmin}
         />
       )}
