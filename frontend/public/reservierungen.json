@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1003",
+    "title": "Testbuchung für User 85123",
+    "date": "2025-04-15",
+    "info": "Reservierung für einen Testuser",
+    "status": "gebucht",
+    "userId": "85123",
+    "equipment": "Beamer, Tische",
+    "address": "Hamburg, Hauptbahnhof"
+  },
+  {
+    "id": "1001",
+    "title": "Testbuchung: Bühne & Licht",
+    "date": "2025-04-20",
+    "info": "Gebucht für Open-Air Bühne inkl. Sound",
+    "status": "gebucht",
+    "userId": "admin123",
+    "equipment": "Bühne, Licht, Sound",
+    "address": "Berlin, Tempelhofer Feld"
+  },
+  {
+    "id": "1002",
+    "title": "Testreservierung: DJ-Setup",
+    "date": "2025-04-22",
+    "info": "Noch nicht bestätigt",
+    "status": "reserviert",
+    "userId": "user456",
+    "equipment": "DJ-Setup, Lautsprecher",
+    "address": "München, Marienplatz"
+  }
+]
