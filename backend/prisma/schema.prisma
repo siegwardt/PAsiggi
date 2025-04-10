@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+enum UserRole {
+  owner
+  admin
+  user
+}
+
+enum CustomerType {
+  privat
+  verein
+}
+
+enum OrderStatus {
+  offen
+  angefragt
+  bestaetigt
+  abgelehnt
+  abgeschlossen
+}
+
+enum ProductCategory {
+  Licht
+  Ton
+  Buehne
+  Video
+  Strom
+  Spezial
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      UserRole @default(user)
+  firstName String
+  lastName  String
+  phone     String?
+  active    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks    Task[]
+  calendar CalendarEntry[]
+}
+
+model CustomerProfile {
+  id    Int          @id @default(autoincrement())
+  type  CustomerType
+  name  String
+  email String
+  phone String
+  notes String?
+
+  address   Address @relation(fields: [addressId], references: [id])
+  addressId Int
+
+  orders Order[]
+  cart   Cart?
+}
+
+model Address {
+  id      Int    @id @default(autoincrement())
+  label   String
+  street  String
+  zip     String
+  city    String
+  country String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerProfiles CustomerProfile[]
+  orders           Order[]
+}
+
+model Cart {
+  id                Int             @id @default(autoincrement())
+  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id])
+  customerProfileId Int             @unique
+  items             CartItem[]
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  cartId    Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+
+  @@unique([cartId, productId])
+}
+
+model Product {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String
+  category    ProductCategory
+  pricePerDay Float
+  stock       Int
+  imageUrl    String?
+
+  orderItems   OrderItem[]
+  packageItems PackageItem[]
+  cartItems    CartItem[]
+}
+
+model Package {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  items PackageItem[]
+}
+
+model PackageItem {
+  id        Int     @id @default(autoincrement())
+  package   Package @relation(fields: [packageId], references: [id])
+  packageId Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+}
+
+model Order {
+  id                Int             @id @default(autoincrement())
+  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id])
+  customerProfileId Int
+
+  eventAddress   Address @relation(fields: [eventAddressId], references: [id])
+  eventAddressId Int
+
+  startDate  DateTime?
+  endDate    DateTime?
+  totalPrice Float       @default(0)
+  status     OrderStatus @default(offen)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items           OrderItem[]
+  calendarEntries CalendarEntry[]
+  tasks           Task[]
+  EventDetails    EventDetails?
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+}
+
+model CalendarEntry {
+  id      Int      @id @default(autoincrement())
+  title   String
+  date    DateTime
+  user    User?    @relation(fields: [userId], references: [id])
+  userId  Int?
+  order   Order?   @relation(fields: [orderId], references: [id])
+  orderId Int?
+  note    String?
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  dueDate     DateTime
+  completed   Boolean  @default(false)
+  priority    String   @default("medium")
+  notes       String?
+
+  user    User  @relation(fields: [userId], references: [id])
+  userId  Int
+  order   Order @relation(fields: [orderId], references: [id])
+  orderId Int
+}
+
+model EventDetails {
+  id              Int      @id @default(autoincrement())
+  orderId         Int      @unique
+  order           Order    @relation(fields: [orderId], references: [id])
+  eventAddressId  Int
+  startDate       DateTime
+  endDate         DateTime
+  additionalNotes String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
