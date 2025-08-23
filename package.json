@@ -5,21 +5,16 @@
   "description": "Website für Tizian Veranstaltungstechnik PA Siggi",
   "scripts": {
     "dev": "turbo run dev",
-    
     "proxy": "node apps/proxy/index.js",
-    
     "dev:back": "turbo run dev --filter=backend",
     "dev:front": "turbo run dev --filter=frontend",
-
     "build": "turbo run build",
-
     "db:migrate": "turbo run db:migrate --filter=backend",
     "db:prod": "turbo run db:prod --filter=backend",
     "db:format": "turbo run db:format --filter=backend",
     "db:studio": "turbo run db:studio --filter=backend",
-
     "lint": "turbo run lint"
-  },  
+  },
   "workspaces": [
     "apps/*"
   ],
@@ -36,9 +31,9 @@
   },
   "homepage": "https://github.com/siegwardt/PAsiggi#readme",
   "devDependencies": {
-    "turbo": "^2.5.0"
+    "turbo": "^2.5.6"
   },
-    "volta": {
+  "volta": {
     "node": "22.17.0",
     "pnpm": "9.1.1"
   },

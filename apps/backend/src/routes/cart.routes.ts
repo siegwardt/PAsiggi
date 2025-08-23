@@ -1,20 +1,22 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
   getCart,
   addItem,
   removeItem,
   clearCart,
+  updateItemQuantity,
   checkout,
-  updateItemQuantity
-} from '../controllers/cart.controller';
+} from "../controllers/cart.controller";
+import { validate } from "../middleware/validate";
+import { addItemSchema, updateItemSchema } from "../schemas/cart.schema";
 
 const router = Router();
 
-router.get('/', getCart);
-router.post('/item', addItem);
-router.put('/item/:itemId', updateItemQuantity);
-router.delete('/item/:itemId', removeItem);
-router.delete('/clear', clearCart);
-router.post('/checkout', checkout);
+router.get("/", getCart);
+router.post("/items", validate(addItemSchema), addItem);
+router.patch("/items/:itemId", validate(updateItemSchema), updateItemQuantity);
+router.delete("/items/:itemId", removeItem);
+router.delete("/", clearCart);
+router.post("/checkout", checkout);
 
 export default router;

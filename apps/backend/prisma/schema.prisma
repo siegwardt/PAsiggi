@@ -36,49 +36,119 @@ enum ProductCategory {
   Spezial
 }
 
+model Product {
+  id           Int             @id @default(autoincrement())
+  slug         String?         @unique
+  name         String
+  description  String?         @db.Text
+  category     ProductCategory
+  pricePerDay  Float           @default(0)
+  priceCents   Int             @default(0)
+  stock        Int
+  imageUrl     String?
+  images       ProductImage[]
+  active       Boolean         @default(true)
+  orderItems   OrderItem[]
+  packageItems PackageItem[]
+  cartItems    CartItem[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @default(now()) @updatedAt
+}
+
+model ProductImage {
+  id        Int     @id @default(autoincrement())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+  url       String
+  alt       String?
+  sort      Int     @default(0)
+
+  @@index([productId, sort])
+}
+
+model Package {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  items       PackageItem[]
+}
+
+model PackageItem {
+  id        Int     @id @default(autoincrement())
+  package   Package @relation(fields: [packageId], references: [id])
+  packageId Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+}
+
+model Order {
+  id                Int             @id @default(autoincrement())
+  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id])
+  customerProfileId Int
+  eventAddress      Address         @relation(fields: [eventAddressId], references: [id])
+  eventAddressId    Int
+  startDate         DateTime?
+  endDate           DateTime?
+  totalPrice        Float           @default(0)
+  status            OrderStatus     @default(offen)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  items             OrderItem[]
+  calendarEntries   CalendarEntry[]
+  tasks             Task[]
+  EventDetails      EventDetails?
+}
+
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  order      Order   @relation(fields: [orderId], references: [id])
+  orderId    Int
+  product    Product @relation(fields: [productId], references: [id])
+  productId  Int
+  quantity   Int
+  priceCents Int     @default(0)
+
+  @@index([orderId])
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int             @id @default(autoincrement())
+  email     String          @unique
   password  String
-  role      UserRole @default(user)
+  role      UserRole        @default(user)
   firstName String
   lastName  String
   phone     String?
-  active    Boolean  @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tasks    Task[]
-  calendar CalendarEntry[]
+  active    Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  tasks     Task[]
+  calendar  CalendarEntry[]
 }
 
 model CustomerProfile {
-  id    Int          @id @default(autoincrement())
-  type  CustomerType
-  name  String
-  email String
-  phone String
-  notes String?
-
-  address   Address @relation(fields: [addressId], references: [id])
+  id        Int          @id @default(autoincrement())
+  type      CustomerType
+  name      String
+  email     String
+  phone     String
+  notes     String?
+  address   Address      @relation(fields: [addressId], references: [id])
   addressId Int
-
-  orders Order[]
-  cart   Cart?
+  orders    Order[]
+  cart      Cart?
 }
 
 model Address {
-  id      Int    @id @default(autoincrement())
-  label   String
-  street  String
-  zip     String
-  city    String
-  country String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id               Int               @id @default(autoincrement())
+  label            String
+  street           String
+  zip              String
+  city             String
+  country          String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   customerProfiles CustomerProfile[]
   orders           Order[]
 }
@@ -101,68 +171,6 @@ model CartItem {
   @@unique([cartId, productId])
 }
 
-model Product {
-  id          Int             @id @default(autoincrement())
-  name        String
-  description String
-  category    ProductCategory
-  pricePerDay Float
-  stock       Int
-  imageUrl    String?
-
-  orderItems   OrderItem[]
-  packageItems PackageItem[]
-  cartItems    CartItem[]
-}
-
-model Package {
-  id          Int     @id @default(autoincrement())
-  name        String
-  description String?
-
-  items PackageItem[]
-}
-
-model PackageItem {
-  id        Int     @id @default(autoincrement())
-  package   Package @relation(fields: [packageId], references: [id])
-  packageId Int
-  product   Product @relation(fields: [productId], references: [id])
-  productId Int
-  quantity  Int
-}
-
-model Order {
-  id                Int             @id @default(autoincrement())
-  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id])
-  customerProfileId Int
-
-  eventAddress   Address @relation(fields: [eventAddressId], references: [id])
-  eventAddressId Int
-
-  startDate  DateTime?
-  endDate    DateTime?
-  totalPrice Float       @default(0)
-  status     OrderStatus @default(offen)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  items           OrderItem[]
-  calendarEntries CalendarEntry[]
-  tasks           Task[]
-  EventDetails    EventDetails?
-}
-
-model OrderItem {
-  id        Int     @id @default(autoincrement())
-  order     Order   @relation(fields: [orderId], references: [id])
-  orderId   Int
-  product   Product @relation(fields: [productId], references: [id])
-  productId Int
-  quantity  Int
-}
-
 model CalendarEntry {
   id      Int      @id @default(autoincrement())
   title   String
@@ -182,11 +190,10 @@ model Task {
   completed   Boolean  @default(false)
   priority    String   @default("medium")
   notes       String?
-
-  user    User  @relation(fields: [userId], references: [id])
-  userId  Int
-  order   Order @relation(fields: [orderId], references: [id])
-  orderId Int
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  orderId     Int
 }
 
 model EventDetails {
