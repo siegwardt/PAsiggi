@@ -14,10 +14,6 @@ export function toUiProduct(p: ProductDtoV2): Product {
     name: p.name,
     price: p.priceEUR,
     description: p.description ?? undefined,
-    image: buildImageUrl(p.cover?.url),
-    images: (p.images ?? []).map(img => ({
-      url: buildImageUrl(img.url),
-      alt: img.alt ?? "",
-    })),
+    image: buildImageUrl(p.cover?.url), 
   };
 }

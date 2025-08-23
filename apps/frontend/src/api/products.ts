@@ -24,6 +24,5 @@ export async function fetchProducts(): Promise<ProductDtoV2[]> {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
-  // WICHTIG: unser Backend liefert { items, total, ... }
   return Array.isArray(json?.items) ? json.items : [];
 }

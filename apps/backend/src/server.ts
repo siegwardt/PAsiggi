@@ -1,28 +1,48 @@
-import express from 'express';
-import apiRoutes from './routes';
+// apps/backend/src/server.ts
+import express from "express";
+import cors from "cors";
+import apiRoutes from "./routes";
 
 const app = express();
 const PORT = 5001;
 
+// Body-Parser
 app.use(express.json());
 
-async function startServer() {
-  try {
-    app.get('/', (req, res) => {
-      res.send('Please use /api!')
-    });
-    
-    app.get('/api', (req, res) => {
-      res.send('Succesfull connecion!')
-    });
-    
-    app.use('/api/v1', apiRoutes);
+// ✅ CORS zuerst einhängen (vor allen Routen)
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+// Preflight-Requests beantworten
+app.options("*", cors());
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}/api`);
-    })
-  } catch (err) {
-  console.error('Database connection error:', err);
-}};
+// 🔎 Health/Info
+app.get("/", (_req, res) => res.send("Please use /api!"));
+app.get("/api", (_req, res) => res.send("Successful connection!"));
 
-startServer();
+// ✅ API v1
+app.use("/api/v1", apiRoutes);
+
+// 404 Fallback für unbekannte Endpunkte
+app.use((_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
+// Zentrale Fehlerbehandlung (falls next(err) aufgerufen wird)
+app.use(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("Unhandled error:", err);
+    res.status(err?.status || 500).json({ error: err?.message || "Internal Server Error" });
+  }
+);
+
+// Start
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}/api`);
+});
