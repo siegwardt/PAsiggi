@@ -1,3 +1,7 @@
+
+const API_BASE = process.env.BACKEND_API_URL || "http://localhost:5001/api/v1";
+
+export type ProductImageDto = { url: string; alt: string | null };
 export type ProductDtoV2 = {
   id: string;
   slug: string | null;
@@ -8,15 +12,18 @@ export type ProductDtoV2 = {
   category: string;
   stock: number;
   active: boolean;
-  cover: { filename: string; alt: string | null; sort: number } | null;
-  images: Array<{ filename: string; alt: string | null; sort: number }>;
+  cover: ProductImageDto | null;
+  images: ProductImageDto[];
   createdAt: string;
   updatedAt: string;
 };
 
 export async function fetchProducts(): Promise<ProductDtoV2[]> {
-  const res = await fetch("http://localhost:5001/api/v1/products");
-  if (!res.ok) throw new Error("Produkte konnten nicht geladen werden");
-  const data = await res.json();
-  return data.items;
+  const res = await fetch(`${API_BASE}/products?limit=100&offset=0`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  // WICHTIG: unser Backend liefert { items, total, ... }
+  return Array.isArray(json?.items) ? json.items : [];
 }
