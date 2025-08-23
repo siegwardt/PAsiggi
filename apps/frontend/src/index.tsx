@@ -2,43 +2,40 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import reportWebVitals from "./reportWebVitals";
+import "./style/index.module.css";
+
+// Layout & Auth
 import Layout from "./Layout";
 import { AuthProvider } from "./contexts/AuthContext";
-import "./style/index.module.css";
+import ProtectedKonto from "./components/ProtectedKonto";
 
 // Seiten
 import Home from "./pages/Home";
-import Konto from "./pages/Konto";
 import Login from "./pages/Login";
-import ProtectedKonto from "./components/ProtectedKonto";
+import Konto from "./pages/Konto";
 import Shop from "./pages/Shop";
 import Cart from "./pages/Cart";
 
 // 🛒 Warenkorb
 import { CartProvider } from "./components/shop/CartContext";
-import { CartSheet } from "./components/shop/CartSheet";
 import { CartFab } from "./components/shop/CartFab";
+import { CartSidebar } from "./components/shop/CartSidebar"; 
 
-// Kleine Hilfskomponente: blendet FAB auf /cart aus
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
+
 function GlobalCartUI() {
-  const location = useLocation();
-
-  // auf /cart nur Sidebar rendern, kein FAB
-  if (location.pathname === "/cart") {
-    return <CartSheet />;
-  }
-
+  const { pathname } = useLocation();
+  if (pathname === "/cart") return null;
   return (
     <>
-      <CartSheet />
+      <CartSidebar />
       <CartFab />
     </>
   );
 }
 
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
-);
+const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 
 root.render(
   <BrowserRouter>
@@ -53,8 +50,6 @@ root.render(
             <Route path="konto" element={<ProtectedKonto element={Konto} />} />
           </Route>
         </Routes>
-
-        {/* ✅ global: Warenkorb-UI */}
         <GlobalCartUI />
       </CartProvider>
     </AuthProvider>
