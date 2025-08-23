@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../prisma";
+import { toSlug } from "../utils/slug";
 
 const toFilename = (s?: string | null) =>
   typeof s === "string" ? (s.split("/").pop() ?? s) : null;
@@ -181,6 +182,93 @@ export const getAvailability = async (req: Request, res: Response) => {
 
     return res.status(200).json({ stock: product.stock, confirmed, reserved, available });
   } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateProduct = async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    return res.status(400).json({ error: "Ungültige Produkt-ID" });
+  }
+
+  const {
+    name,
+    description,
+    category,
+    price,
+    priceCents,
+    stock,
+    active,
+    images,
+    slug, // <-- NEU
+  } = req.body as {
+    name?: string;
+    description?: string | null;
+    category?: string;
+    price?: number;
+    priceCents?: number;
+    stock?: number;
+    active?: boolean;
+    images?: { url: string; alt?: string }[];
+    slug?: string | null;
+  };
+
+  try {
+    const cents =
+      typeof priceCents === "number"
+        ? Math.max(0, Math.round(priceCents))
+        : typeof price === "number"
+        ? Math.max(0, Math.round(price * 100))
+        : undefined;
+
+    // Slug vorbereiten (optional)
+    let normalizedSlug: string | null | undefined = undefined;
+    if (slug === null) {
+      normalizedSlug = null;                     // explizit entfernen
+    } else if (typeof slug === "string") {
+      const s = toSlug(slug);
+      if (!s) return res.status(400).json({ error: "Ungültiger Slug" });
+      normalizedSlug = s;
+      // Einzigartigkeit prüfen (außer eigenes Produkt)
+      const existing = await prisma.product.findUnique({ where: { slug: s } });
+      if (existing && existing.id !== id) {
+        return res.status(409).json({ error: "Slug bereits vergeben" });
+      }
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        category: category as any,
+        stock,
+        active,
+        ...(cents !== undefined
+          ? { priceCents: cents, pricePerDay: cents / 100 }
+          : {}),
+        ...(normalizedSlug !== undefined ? { slug: normalizedSlug } : {}),
+        ...(images?.length
+          ? {
+              images: {
+                create: images.map((i) => ({
+                  filename: i.url,
+                  alt: i.alt ?? null,
+                })),
+              },
+            }
+          : {}),
+      },
+      include: { images: { orderBy: { sort: "asc" } } },
+    });
+
+    return res.json(product);
+  } catch (err: any) {
+    // Prisma Unique-Fehler schön melden
+    if (err?.code === "P2002" && err?.meta?.target?.includes("slug")) {
+      return res.status(409).json({ error: "Slug bereits vergeben" });
+    }
     return res.status(500).json({ error: err.message });
   }
 };

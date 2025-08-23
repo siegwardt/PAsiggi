@@ -1,12 +1,36 @@
-import { Request } from 'express';
-import { UserRole } from '@prisma/client';
+import type { Request } from "express";
+import type { UserRole } from "@prisma/client";
 
-export interface JwtPayload {
+/**
+ * Payload, das wir in unseren JWTs tragen.
+ * (Nicht mit jwt.JsonWebTokenPayload verwechseln)
+ */
+export interface AppJwtPayload {
   id: number;
   email: string;
-  role: UserRole;
+  role: UserRole; // 'owner' | 'admin' | 'user'
+  iat?: number;
+  exp?: number;
 }
 
-export interface AuthRequest extends Request {
-  user?: JwtPayload;
+/**
+ * Express-Request um `user` erweitern.
+ * -> Nur HIER definieren (global augmentation).
+ */
+declare global {
+  namespace Express {
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    interface Request {
+      user?: {
+        id: number;
+        email: string;
+        role: UserRole;
+      };
+    }
+  }
 }
+
+/** Hilfstyp, falls du ihn irgendwo direkt brauchst */
+export type AuthRequest = Request;
+
+export {};
