@@ -9,6 +9,8 @@ import Home from './pages/Home';
 import Konto from './pages/Konto';
 import Login from './pages/Login';
 import ProtectedKonto from './components/ProtectedKonto';
+import Shop from './pages/Shop';
+import Cart from './pages/Cart';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -20,6 +22,8 @@ root.render(
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
+          <Route path="shop" element={<Shop />} />
+          <Route path="cart" element={<Cart />} />
           <Route
             path="konto"
             element={<ProtectedKonto element={Konto} />}

@@ -2,11 +2,11 @@ import type { Product } from "./types";
 
 export const demoProducts: Product[] = [
 {
-id: "xlr-10m",
-name: "XLR Kabel (10 m)",
-price: 14.9,
-image: "/images/products/xlr.jpg",
-description: "Robustes Mikrofonkabel mit Neutrik-kompatiblen Steckern.",
+id: "theBoxPro-Achat-115-Sub",
+name: "the box pro Achat 115 Sub",
+price: 24,
+image: "/images/products/theBoxPro115.png",
+description: '15" zoll, 500W RMS',
 },
 {
 id: "rca-2m",

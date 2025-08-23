@@ -4,19 +4,31 @@ import { Card, CardContent, CardActions, Typography, Button, Box } from "@mui/ma
 import type { Product } from "./types";
 import { useCart } from "./CartContext";
 
-image: "/images/products/theBoxPro115.png"
-
 export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const { add } = useCart();
 
   return (
     <Card className="rounded-2xl shadow-md" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ position: "relative", aspectRatio: "4/3", overflow: "hidden", borderRadius: 2 }}>
+      <Box
+        sx={{
+          width: "100%",
+          aspectRatio: "4 / 3",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          bgcolor: "#fff",
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 2,
+          p: { xs: 1.5, sm: 2.5 },
+        }}
+      >
         {product.image ? (
           <img
             src={product.image}
             alt={product.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
             loading="lazy"
           />
         ) : (
@@ -25,7 +37,6 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       </Box>
 
       <CardContent sx={{ flexGrow: 1 }}>
-        {/* ... wie gehabt ... */}
       </CardContent>
 
       <CardActions sx={{ p: 2, pt: 0 }}>
