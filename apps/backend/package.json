@@ -10,7 +10,8 @@
     "db:migrate": "npx prisma migrate dev --name",
     "db:prod": "npx prisma migrate deploy",
     "db:format": "npx prisma format",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "reset:products": "ts-node ./scripts/resetProducts.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
