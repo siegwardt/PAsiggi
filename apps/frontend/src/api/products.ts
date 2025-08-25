@@ -12,7 +12,6 @@ export type ProductDtoV2 = {
   category: string;
   stock: number;
   active: boolean;
-  cover: ProductImageDto | null;
   images: ProductImageDto[];
   createdAt: string;
   updatedAt: string;

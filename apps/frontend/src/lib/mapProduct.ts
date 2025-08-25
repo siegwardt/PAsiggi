@@ -9,11 +9,17 @@ function buildImageUrl(file?: string | null): string {
 }
 
 export function toUiProduct(p: ProductDtoV2): Product {
+  const images = (p.images ?? []).map(img => ({
+    url: buildImageUrl(img.url),
+    alt: img.alt ?? "",
+  }));
+
   return {
     id: p.id,
     name: p.name,
     price: p.priceEUR,
     description: p.description ?? undefined,
-    image: buildImageUrl(p.cover?.url), 
+    image: images.length > 0 ? images[0].url : buildImageUrl(null),
+    images,
   };
 }
