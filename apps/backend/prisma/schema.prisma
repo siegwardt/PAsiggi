@@ -8,245 +8,107 @@ datasource db {
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
+model Category {
+  id       Int       @id @default(autoincrement())
+  slug     String    @unique
+  name     String    @unique
+  products Product[]
+}
+
 enum UserRole {
-  owner
   admin
   user
 }
 
-enum CustomerType {
-  privat
-  verein
-}
-
-enum OrderStatus {
-  offen
-  angefragt
-  bestaetigt
-  abgelehnt
-  abgeschlossen
-}
-
-enum ProductCategory {
-  Licht
-  Ton
-  Buehne
-  Video
-  Strom
-  Spezial
-}
-
-model Product {
-  id          Int             @id @default(autoincrement())
-  slug        String?         @unique
-  name        String
-  description String?         @db.Text
-  category    ProductCategory
-  pricePerDay Float           @default(0)
-  priceCents  Int             @default(0)
-  stock       Int
-  imageUrl    String?
-  active      Boolean         @default(true)
-
-  images       ProductImage[]
-  orderItems   OrderItem[]
-  packageItems PackageItem[]
-  cartItems    CartItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([active, category, createdAt])
-  @@index([slug])
-}
-
-model ProductImage {
-  id        Int     @id @default(autoincrement())
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  productId Int
-  filename  String
-  alt       String?
-  sort      Int     @default(0)
-
-  @@index([productId, sort])
-}
-
-model Package {
-  id          Int           @id @default(autoincrement())
-  name        String
-  description String?
-  items       PackageItem[]
-}
-
-model PackageItem {
-  id        Int     @id @default(autoincrement())
-  package   Package @relation(fields: [packageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  packageId Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  productId Int
-  quantity  Int
-
-  @@unique([packageId, productId])
-  @@index([productId])
-}
-
-model Order {
-  id                Int             @id @default(autoincrement())
-  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  customerProfileId Int
-
-  eventAddress   Address @relation(fields: [eventAddressId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  eventAddressId Int
-
-  startDate DateTime?
-  endDate   DateTime?
-
-  /**
-   * Legacy (EUR-Float) – optional weiterhin befüllen
-   */
-  totalPrice Float @default(0)
-  /**
-   * Neu: Gesamtpreis in Cent (präzise)
-   */
-  totalCents Int   @default(0)
-
-  status OrderStatus @default(offen)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  items           OrderItem[]
-  calendarEntries CalendarEntry[]
-  tasks           Task[]
-  EventDetails    EventDetails?
-
-  @@index([status, startDate])
-  @@index([customerProfileId])
-}
-
-model OrderItem {
-  id         Int     @id @default(autoincrement())
-  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  orderId    Int
-  product    Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  productId  Int
-  quantity   Int
-  /**
-   * Preis-Snapshot in Cent zum Bestellzeitpunkt
-   */
-  priceCents Int     @default(0)
-
-  @@index([orderId])
-  @@index([productId])
-}
-
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      UserRole @default(user)
-  firstName String
-  lastName  String
-  phone     String?
-  active    Boolean  @default(true)
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  password   String
+  firstName  String
+  lastName   String
+  phone      String?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role UserRole @default(user)
 
-  tasks    Task[]
-  calendar CalendarEntry[]
-}
-
-model CustomerProfile {
-  id    Int          @id @default(autoincrement())
-  type  CustomerType
-  name  String
-  email String
-  phone String
-  notes String?
-
-  address   Address @relation(fields: [addressId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  addressId Int
-
-  orders Order[]
-  cart   Cart?
-
-  @@index([addressId])
-  @@index([email])
+  addresses         Address[]
+  primaryAddressId  Int?
+  primaryAddress    Address? @relation("UserPrimaryAddress", fields: [primaryAddressId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 }
 
 model Address {
-  id      Int    @id @default(autoincrement())
-  label   String
-  street  String
-  zip     String
-  city    String
-  country String
-
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  label     String
+  street    String
+  zip       String
+  city      String
+  country   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  customerProfiles CustomerProfile[]
-  orders           Order[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  usersAsPrimary User[] @relation("UserPrimaryAddress")
 }
 
-model Cart {
-  id                Int             @id @default(autoincrement())
-  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  customerProfileId Int             @unique
-  items             CartItem[]
+model Product {
+  id           Int       @id @default(autoincrement())
+  slug         String?   @unique
+  sku          String?   @unique
+  name         String
+  description  String?   @db.Text
+  priceCents   Int       @default(0)
+  stock        Int       @default(0)
+  active       Boolean   @default(true)
+  imageUrl     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  bundleItems BundleItem[]
+
+  @@index([active, createdAt])
+  @@index([categoryId])
 }
 
-model CartItem {
+model Bundle {
+  id          Int          @id @default(autoincrement())
+  slug        String?      @unique
+  name        String
+  description String?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  items  BundleItem[]
+  images BundleImage[]
+}
+
+model BundleItem {
   id        Int     @id @default(autoincrement())
-  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  cartId    Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  bundleId  Int
   productId Int
-  quantity  Int
+  quantity  Int     @default(1)
 
-  @@unique([cartId, productId])
+  bundle  Bundle  @relation(fields: [bundleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([bundleId, productId])
   @@index([productId])
 }
 
-model CalendarEntry {
-  id      Int      @id @default(autoincrement())
-  title   String
-  date    DateTime
-  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  userId  Int?
-  order   Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  orderId Int?
-  note    String?
+model BundleImage {
+  id       Int     @id @default(autoincrement())
+  bundleId Int
+  url      String
+  alt      String?
+  sort     Int     @default(0)
 
-  @@index([date])
-  @@index([userId])
-  @@index([orderId])
-}
+  bundle Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-model Task {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  dueDate     DateTime
-  completed   Boolean  @default(false)
-  priority    String   @default("medium")
-  notes       String?
-
-  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId  Int
-  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  orderId Int
-}
-
-model EventDetails {
-  id              Int      @id @default(autoincrement())
-  orderId         Int      @unique
-  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  eventAddressId  Int
-  startDate       DateTime
-  endDate         DateTime
-  additionalNotes String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  @@index([bundleId, sort])
 }
