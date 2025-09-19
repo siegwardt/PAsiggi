@@ -8,17 +8,12 @@ const Home = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div>
+    <>
       {isAuthenticated ? (
-        <div>
-          <h1>Willkommen zurück!</h1>
-          <p>Hier ist der exklusive Inhalt für eingeloggte Benutzer.</p>
-        </div>
-      ) : (
         <>
           <div>
-            <h1>Willkommen auf unserer Seite!</h1>
-            <p>Bitte loggen Sie sich ein, um exklusive Inhalte zu sehen.</p>
+            <h1>Willkommen zurück!</h1>
+            <p>Hier ist der exklusive Inhalt für eingeloggte Benutzer.</p>
           </div>
           <div>
             <h2>Produkte finden</h2>
@@ -32,12 +27,19 @@ const Home = () => {
                 "&:hover": { textDecoration: "underline" },
               }}
             >
-            Produkte
+              Produkte
             </Typography>
           </div>
         </>
+      ) : (
+        <>
+          <div>
+            <h1>Willkommen auf unserer Seite!</h1>
+            <p>Bitte loggen Sie sich ein, um exklusive Inhalte zu sehen.</p>
+          </div>
+        </>
       )}
-    </div>
+    </>
   );
 };
 

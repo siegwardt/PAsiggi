@@ -12,7 +12,7 @@ import Login from "./pages/Login";
 import Konto from "./pages/Konto";
 import Shop from "./pages/Shop";
 import Cart from "./pages/Cart";
-import ProtectedKonto from "./components/ProtectedKonto";
+import { ProtectedKonto, ProtectetShop } from "./components/ProtectedRout";
 import { CartFab } from "./components/shop/CartFab";
 import { CartSidebar } from "./components/shop/CartSidebar";
 
@@ -20,7 +20,6 @@ import "./style/index.module.css";
 
 function GlobalCartUI() {
   const { pathname } = useLocation();
-  // Sidebar/FAB nicht auf der Cart-Seite rendern
   if (pathname.startsWith("/cart")) return null;
   return (
     <>
@@ -34,7 +33,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: true,
-      staleTime: 60_000, // 1 min
+      staleTime: 60_000,
     },
   },
 });
@@ -51,7 +50,7 @@ root.render(
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
                 <Route path="login" element={<Login />} />
-                <Route path="shop" element={<Shop />} />
+                <Route path="shop" element={<ProtectetShop element={Shop} />} />
                 <Route path="cart" element={<Cart />} />
                 <Route path="konto" element={<ProtectedKonto element={Konto} />} />
               </Route>
