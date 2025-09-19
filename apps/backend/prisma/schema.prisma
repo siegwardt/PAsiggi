@@ -54,17 +54,17 @@ model Address {
 }
 
 model Product {
-  id           Int       @id @default(autoincrement())
-  slug         String?   @unique
-  sku          String?   @unique
-  name         String
-  description  String?   @db.Text
-  priceCents   Int       @default(0)
-  stock        Int       @default(0)
-  active       Boolean   @default(true)
-  imageUrl     String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id            Int       @id @default(autoincrement())
+  slug          String?   @unique
+  sku           String?   @unique
+  name          String
+  description   String?   @db.Text
+  priceCents    Int       @default(0)
+  stock         Int       @default(0)
+  active        Boolean   @default(true)
+  imageFilename String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   categoryId Int?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -73,6 +73,8 @@ model Product {
 
   @@index([active, createdAt])
   @@index([categoryId])
+  @@index([slug])
+  @@index([sku])
 }
 
 model Bundle {
@@ -102,11 +104,11 @@ model BundleItem {
 }
 
 model BundleImage {
-  id       Int     @id @default(autoincrement())
-  bundleId Int
-  url      String
-  alt      String?
-  sort     Int     @default(0)
+  id        Int     @id @default(autoincrement())
+  bundleId  Int
+  filename  String
+  alt       String?
+  sort      Int     @default(0)
 
   bundle Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
