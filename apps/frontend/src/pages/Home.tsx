@@ -1,9 +1,6 @@
-import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import BookingCalendar from '../components/kalender/BookingCalendar';
 import { Typography } from '@mui/material';
 
-// <BookingCalendar isAdmin={false} userId='85123' />
 const Home = () => {
   const { isAuthenticated } = useAuth();
 
