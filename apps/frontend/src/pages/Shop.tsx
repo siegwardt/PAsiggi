@@ -1,42 +1,65 @@
-import { useMemo } from "react";
-import { Container, Typography, Box, Alert } from "@mui/material";
-import { ProductGrid } from "../components/shop/ProductGrid";
-import { useAllProducts } from "../hooks/useAllProducts";
-import { toUiProduct } from "../lib/mapProduct";
+import React, { useEffect, useState } from "react";
+import type { Bundle } from "../types/api";
+import {
+  SectionHeader,
+  BundleGrid,
+  BundleCard,
+  SkeletonCard,
+  EmptyState,
+  ErrorNotice,
+} from "../components/shop/ShopComponents";
 
-export default function Shop() {
-  const { data, isLoading, isError, error } = useAllProducts();
+const BASE: string ="http://localhost:5000";
+const API = `${BASE}/api/v1`;
 
-  const products = useMemo(() => (data ? data.map(toUiProduct) : []), [data]);
+export default function ShopPage() {
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`${API}/bundles`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: Bundle[] = await res.json();
+        if (!alive) return;
+        setBundles((data || []).filter((b) => b.active).slice(0, 3));
+      } catch (e: any) {
+        setErr(e?.message || "Fehler beim Laden");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const handleAdd = (bundle: Bundle) => {
+    alert(`Bundle "${bundle.name}" in den Warenkorb (Demo)`);
+  };
 
   return (
-    <>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Produkte
-        </Typography>
+    <div className="max-w-6xl mx-auto p-6">
+      <SectionHeader title="Shop" href="/bundles" />
 
-        {isLoading && <Typography sx={{ mt: 2 }}>Lade Produkte…</Typography>}
-
-        {isError && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            Fehler beim Laden{error ? `: ${error.message}` : ""}.
-          </Alert>
-        )}
-
-        {!isLoading && !isError && products.length === 0 && (
-          <Typography sx={{ mt: 2 }}>Keine Produkte gefunden.</Typography>
-        )}
-
-        {products.length > 0 && (
-          <Box sx={{ mt: 2 }}>
-            <ProductGrid products={products} />
-          </Box>
-        )}
-      </Container>
-      <Container>
-
-      </Container>
-    </>
+      {loading ? (
+        <BundleGrid>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </BundleGrid>
+      ) : err ? (
+        <ErrorNotice message={err} />
+      ) : bundles.length === 0 ? (
+        <EmptyState>Keine Bundles gefunden.</EmptyState>
+      ) : (
+        <BundleGrid>
+          {bundles.map((b) => (
+            <BundleCard key={b.id} bundle={b} onAdd={handleAdd} />
+          ))}
+        </BundleGrid>
+      )}
+    </div>
   );
 }

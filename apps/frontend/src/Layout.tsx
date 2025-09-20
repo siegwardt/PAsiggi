@@ -1,4 +1,3 @@
-import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import classes from './style/layout.module.css';
