@@ -4,6 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",

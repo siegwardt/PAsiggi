@@ -1,110 +1,158 @@
 import type { Request, Response } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions, type Secret, type Algorithm } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 import { prisma } from "../../utils/prisma";
-import type { AppJwtPayload } from "../../types/common";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
-const TOKEN_TTL = "1d";
-const SALT_ROUNDS = 10;
+const secretEnv = process.env.JWT_SECRET;
+if (!secretEnv) throw new Error("JWT_SECRET is not set");
+const JWT_SECRET: Secret = secretEnv;
 
-// Utility: build the JWT and return a safe user object
-function issueTokenAndUser(user: { id: number; email: string; role: "admin" | "user" }) {
-  const payload: AppJwtPayload = { id: user.id, email: user.email, role: user.role };
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_TTL });
-  return { token, user };
+const JWT_ISS = process.env.JWT_ISS;
+const JWT_AUD = process.env.JWT_AUD;
+const SALT_ROUNDS = Number(process.env.BCRYPT_COST ?? 10);
+const DUMMY_HASH = bcrypt.hashSync("invalid", SALT_ROUNDS);
+
+const registerSchema = z.object({
+  email: z.string().email().max(254),
+  username: z.string().min(3).max(32),
+  password: z.string().min(8).max(128),
+});
+
+const loginSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(128),
+});
+
+const attempts = new Map<string, { count: number; until?: number }>();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 10 * 60 * 1000;
+
+function signOptions(): SignOptions {
+  const opts: SignOptions = { expiresIn: "7d", algorithm: "HS256" as Algorithm };
+  if (JWT_ISS) opts.issuer = JWT_ISS;
+  if (JWT_AUD) opts.audience = JWT_AUD;
+  return opts;
+}
+const SIGN_OPTS = signOptions();
+
+function key(req: Request) {
+  return req.ip || "unknown";
 }
 
-export async function login(req: Request, res: Response) {
-  try {
-    const { email, password } = req.body ?? {};
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email und Passwort sind erforderlich" });
-    }
+function throttled(req: Request) {
+  const k = key(req);
+  const entry = attempts.get(k);
+  const now = Date.now();
+  return !!(entry?.until && entry.until > now);
+}
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(401).json({ error: "Ungültige Zugangsdaten" });
-    }
+function fail(req: Request) {
+  const k = key(req);
+  const now = Date.now();
+  const entry = attempts.get(k) ?? { count: 0 };
+  const next = entry.count + 1;
+  const updated: { count: number; until?: number } = { count: next };
+  if (next >= MAX_ATTEMPTS) updated.until = now + WINDOW_MS;
+  attempts.set(k, updated);
+}
 
-    // Compare hashed password
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) {
-      return res.status(401).json({ error: "Ungültige Zugangsdaten" });
-    }
+function ok(req: Request) {
+  attempts.delete(key(req));
+}
 
-    const { token, user: safeUser } = issueTokenAndUser({
-      id: user.id,
-      email: user.email,
-      role: user.role as "admin" | "user",
-    });
+function norm(v: string) {
+  return v.trim().toLowerCase();
+}
 
-    // Do NOT send password back
-    return res.json({ token, user: safeUser });
-  } catch (err: any) {
-    if (process.env.NODE_ENV !== "production") console.error("[auth.login]", err);
-    return res.status(500).json({ error: "Interner Fehler" });
-  }
+function issueJwt(userId: string, roleName: string) {
+  return jwt.sign({ sub: userId, role: roleName }, JWT_SECRET, SIGN_OPTS);
+}
+
+function safeUser(u: { id: string; email: string; username: string; role: { name: string } }) {
+  return { id: u.id, email: u.email, username: u.username, role: u.role.name };
 }
 
 export async function register(req: Request, res: Response) {
   try {
-    const { email, password, firstName, lastName } = req.body ?? {};
-    if (!email || !password || !firstName || !lastName) {
-      return res.status(400).json({ error: "Alle Felder sind erforderlich" });
-    }
+    const parsed = registerSchema.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(400).json({ error: "Ungültige Eingaben" });
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return res.status(409).json({ error: "Benutzer existiert bereits" });
-    }
+    const email = norm(parsed.data.email);
+    const username = parsed.data.username.trim();
 
-    // Hash password before storing
-    const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+    const exists = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
+    if (exists) return res.status(409).json({ error: "Benutzer existiert bereits" });
 
-    const user = await prisma.user.create({
+    const hashed = await bcrypt.hash(parsed.data.password, SALT_ROUNDS);
+
+    const created = await prisma.user.create({
       data: {
         email,
+        username,
         password: hashed,
-        firstName,
-        lastName,
-        role: "user", // default
+        role: {
+          connectOrCreate: { where: { name: "user" }, create: { name: "user" } },
+        },
       },
-      select: { id: true, email: true, role: true }, // never return password
+      select: { id: true, email: true, username: true, role: { select: { name: true } } },
     });
 
-    // Option A: auto-login after register
-    const { token, user: safeUser } = issueTokenAndUser(user);
-    return res.status(201).json({ token, user: safeUser });
+    const token = issueJwt(String(created.id), created.role.name);
+    res.set("Cache-Control", "no-store");
+    return res.status(201).json({ token, user: safeUser(created) });
+  } catch {
+    return res.status(500).json({ error: "Interner Fehler" });
+  }
+}
 
-    // Option B: if you prefer no auto-login:
-    // return res.status(201).json({ message: "Benutzer erstellt" });
-  } catch (err: any) {
-    if (process.env.NODE_ENV !== "production") console.error("[auth.register]", err);
+export async function login(req: Request, res: Response) {
+  try {
+    if (throttled(req)) return res.status(429).json({ error: "Zu viele Versuche. Bitte später erneut versuchen." });
+
+    const parsed = loginSchema.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(400).json({ error: "Ungültige Eingaben" });
+
+    const email = norm(parsed.data.email);
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, username: true, password: true, role: { select: { name: true } } },
+    });
+
+    if (!user) {
+      await bcrypt.compare(parsed.data.password, DUMMY_HASH);
+      fail(req);
+      return res.status(401).json({ error: "Ungültige Zugangsdaten" });
+    }
+
+    const match = await bcrypt.compare(parsed.data.password, user.password);
+    if (!match) {
+      fail(req);
+      return res.status(401).json({ error: "Ungültige Zugangsdaten" });
+    }
+
+    ok(req);
+    const token = issueJwt(String(user.id), user.role.name);
+    res.set("Cache-Control", "no-store");
+    return res.json({ token, user: safeUser(user) });
+  } catch {
     return res.status(500).json({ error: "Interner Fehler" });
   }
 }
 
 export async function me(req: Request, res: Response) {
   try {
-    if (!req.user) return res.status(401).json({ error: "Nicht eingeloggt" });
+    const userId = (req as any)?.user?.id ?? (req as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Nicht eingeloggt" });
 
     const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        firstName: true,
-        lastName: true,
-        addresses: true,
-      },
+      where: { id: String(userId) },
+      select: { id: true, email: true, username: true, role: { select: { name: true } } },
     });
 
     if (!user) return res.status(404).json({ error: "Benutzer nicht gefunden" });
-    return res.json(user);
-  } catch (err: any) {
-    if (process.env.NODE_ENV !== "production") console.error("[auth.me]", err);
+    return res.json({ user: safeUser(user) });
+  } catch {
     return res.status(500).json({ error: "Interner Fehler" });
   }
 }
