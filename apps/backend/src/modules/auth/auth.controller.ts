@@ -10,7 +10,7 @@ const JWT_SECRET: Secret = secretEnv;
 
 const JWT_ISS = process.env.JWT_ISS;
 const JWT_AUD = process.env.JWT_AUD;
-const SALT_ROUNDS = Number(process.env.BCRYPT_COST ?? 10);
+const SALT_ROUNDS = Number(10);
 const DUMMY_HASH = bcrypt.hashSync("invalid", SALT_ROUNDS);
 
 const registerSchema = z.object({
