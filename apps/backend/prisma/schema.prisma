@@ -3,114 +3,50 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
-}
-
-model Category {
-  id       Int       @id @default(autoincrement())
-  slug     String    @unique
-  name     String    @unique
-  products Product[]
-}
-
-enum UserRole {
-  admin
-  user
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  email      String   @unique
-  password   String
-  firstName  String
-  lastName   String
-  phone      String?
-  active     Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id       String @id @default(cuid())
+  email    String @unique
+  username String @unique
+  password String
 
-  role UserRole @default(user)
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
 
-  addresses         Address[]
-  primaryAddressId  Int?
-  primaryAddress    Address? @relation("UserPrimaryAddress", fields: [primaryAddressId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  addresses Address[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Address {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  label     String
-  street    String
-  zip       String
-  city      String
-  country   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String  @id @default(cuid())
+  label      String?
+  street     String
+  postalCode String
+  city       String
+  country    String
+  addition   String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  usersAsPrimary User[] @relation("UserPrimaryAddress")
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  types AddressType[]
+
+  @@index([userId])
 }
 
-model Product {
-  id            Int       @id @default(autoincrement())
-  slug          String?   @unique
-  sku           String?   @unique
-  name          String
-  description   String?   @db.Text
-  priceCents    Int       @default(0)
-  stock         Int       @default(0)
-  active        Boolean   @default(true)
-  imageFilename String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  categoryId Int?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-
-  bundleItems BundleItem[]
-
-  @@index([active, createdAt])
-  @@index([categoryId])
-  @@index([slug])
-  @@index([sku])
+model AddressType {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  addresses Address[]
 }
 
-model Bundle {
-  id          Int          @id @default(autoincrement())
-  slug        String?      @unique
-  name        String
-  description String?
-  active      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  items  BundleItem[]
-  images BundleImage[]
-}
-
-model BundleItem {
-  id        Int     @id @default(autoincrement())
-  bundleId  Int
-  productId Int
-  quantity  Int     @default(1)
-
-  bundle  Bundle  @relation(fields: [bundleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-
-  @@unique([bundleId, productId])
-  @@index([productId])
-}
-
-model BundleImage {
-  id        Int     @id @default(autoincrement())
-  bundleId  Int
-  filename  String
-  alt       String?
-  sort      Int     @default(0)
-
-  bundle Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@index([bundleId, sort])
+model Role {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
 }
