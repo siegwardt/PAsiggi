@@ -3,250 +3,50 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
-}
-
-enum UserRole {
-  owner
-  admin
-  user
-}
-
-enum CustomerType {
-  privat
-  verein
-}
-
-enum OrderStatus {
-  offen
-  angefragt
-  bestaetigt
-  abgelehnt
-  abgeschlossen
-}
-
-enum ProductCategory {
-  Licht
-  Ton
-  Buehne
-  Video
-  Strom
-  Spezial
-}
-
-model Product {
-  id          Int             @id @default(autoincrement())
-  slug        String?         @unique
-  name        String
-  description String?         @db.Text
-  category    ProductCategory
-  pricePerDay Float           @default(0)
-  priceCents  Int             @default(0)
-  stock       Int
-  imageUrl    String?
-  active      Boolean         @default(true)
-
-  images       ProductImage[]
-  orderItems   OrderItem[]
-  packageItems PackageItem[]
-  cartItems    CartItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([active, category, createdAt])
-  @@index([slug])
-}
-
-model ProductImage {
-  id        Int     @id @default(autoincrement())
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  productId Int
-  filename  String
-  alt       String?
-  sort      Int     @default(0)
-
-  @@index([productId, sort])
-}
-
-model Package {
-  id          Int           @id @default(autoincrement())
-  name        String
-  description String?
-  items       PackageItem[]
-}
-
-model PackageItem {
-  id        Int     @id @default(autoincrement())
-  package   Package @relation(fields: [packageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  packageId Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  productId Int
-  quantity  Int
-
-  @@unique([packageId, productId])
-  @@index([productId])
-}
-
-model Order {
-  id                Int             @id @default(autoincrement())
-  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  customerProfileId Int
-
-  eventAddress   Address @relation(fields: [eventAddressId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  eventAddressId Int
-
-  startDate DateTime?
-  endDate   DateTime?
-
-  /**
-   * Legacy (EUR-Float) – optional weiterhin befüllen
-   */
-  totalPrice Float @default(0)
-  /**
-   * Neu: Gesamtpreis in Cent (präzise)
-   */
-  totalCents Int   @default(0)
-
-  status OrderStatus @default(offen)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  items           OrderItem[]
-  calendarEntries CalendarEntry[]
-  tasks           Task[]
-  EventDetails    EventDetails?
-
-  @@index([status, startDate])
-  @@index([customerProfileId])
-}
-
-model OrderItem {
-  id         Int     @id @default(autoincrement())
-  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  orderId    Int
-  product    Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  productId  Int
-  quantity   Int
-  /**
-   * Preis-Snapshot in Cent zum Bestellzeitpunkt
-   */
-  priceCents Int     @default(0)
-
-  @@index([orderId])
-  @@index([productId])
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      UserRole @default(user)
-  firstName String
-  lastName  String
-  phone     String?
-  active    Boolean  @default(true)
+  id       String @id @default(cuid())
+  email    String @unique
+  username String @unique
+  password String
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  addresses Address[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  tasks    Task[]
-  calendar CalendarEntry[]
-}
-
-model CustomerProfile {
-  id    Int          @id @default(autoincrement())
-  type  CustomerType
-  name  String
-  email String
-  phone String
-  notes String?
-
-  address   Address @relation(fields: [addressId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  addressId Int
-
-  orders Order[]
-  cart   Cart?
-
-  @@index([addressId])
-  @@index([email])
 }
 
 model Address {
-  id      Int    @id @default(autoincrement())
-  label   String
-  street  String
-  zip     String
-  city    String
-  country String
+  id         String  @id @default(cuid())
+  label      String?
+  street     String
+  postalCode String
+  city       String
+  country    String
+  addition   String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  customerProfiles CustomerProfile[]
-  orders           Order[]
-}
+  types AddressType[]
 
-model Cart {
-  id                Int             @id @default(autoincrement())
-  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  customerProfileId Int             @unique
-  items             CartItem[]
-}
-
-model CartItem {
-  id        Int     @id @default(autoincrement())
-  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  cartId    Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  productId Int
-  quantity  Int
-
-  @@unique([cartId, productId])
-  @@index([productId])
-}
-
-model CalendarEntry {
-  id      Int      @id @default(autoincrement())
-  title   String
-  date    DateTime
-  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  userId  Int?
-  order   Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  orderId Int?
-  note    String?
-
-  @@index([date])
   @@index([userId])
-  @@index([orderId])
 }
 
-model Task {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  dueDate     DateTime
-  completed   Boolean  @default(false)
-  priority    String   @default("medium")
-  notes       String?
-
-  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId  Int
-  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  orderId Int
+model AddressType {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  addresses Address[]
 }
 
-model EventDetails {
-  id              Int      @id @default(autoincrement())
-  orderId         Int      @unique
-  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  eventAddressId  Int
-  startDate       DateTime
-  endDate         DateTime
-  additionalNotes String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+model Role {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
 }
